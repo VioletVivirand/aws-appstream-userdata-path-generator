@@ -4,6 +4,14 @@ import hashlib
 import urllib.parse
 import csv
 
+def get_clients():
+    s3 = boto3.client('s3')
+    sts = boto3.client('sts')
+    appstream = boto3.client('appstream')
+
+    return s3, sts, appstream
+
+
 def get_account_id(client_sts) -> str:
     account_id = client_sts.get_caller_identity()['Account']
 
@@ -35,16 +43,16 @@ def get_buckets_detail_homefolder(buckets_name, account_id) -> list:
     
     return buckets_detail_homefolder
 
-def export_homefolder_report(buckets_detail_homefolder, users_detail):
+def generate_homefolder_report(buckets_detail_homefolder, users_detail):
     # Prepare data for CSV export
-    # Header = 'User Name', 'First Name', 'Last Name', Home Folder URI (<Region Name>), Home Folder URI (<Region Name>), ... 
+    # Header = 'User Name', 'First Name', 'Last Name', Home Folder URL (<Region Name>), Home Folder URI (<Region Name>), ... 
     header = ['User Name', 'First Name', 'Last Name']
 
     for bucket_detail_homefolder in buckets_detail_homefolder:
         bucket_region = bucket_detail_homefolder['Region']
-        header.append(f'Home Folder URL ({bucket_region})')
+        header.append(f'Home Folder S3 URL ({bucket_region})')
 
-    # Row = '<UserName>', '<FirstName>', '<LastName>', 'S3 URI', 'S3 URI', ... 
+    # Row = '<UserName>', '<FirstName>', '<LastName>', 'S3 URL', 'S3 URL', ... 
     rows = []
 
     for user_detail in users_detail:
@@ -69,14 +77,37 @@ def export_homefolder_report(buckets_detail_homefolder, users_detail):
         for row in rows:
             spamwriter.writerow(row)
 
-def export_recording_report():
-    pass
+def generate_sessionrecording_report(bucket_name_sessionrecording, stack_name, fleet_name, users_detail):
+    # Prepare data for CSV export
+    # Header = 'User Name', 'First Name', 'Last Name', Session Recording URL (<Region Name>), Home Folder URI (<Region Name>), ... 
+    header = ['User Name', 'First Name', 'Last Name', 'Session Recording S3 URL']
 
-def main():
+    # Row = '<UserName>', '<FirstName>', '<LastName>', 'S3 URL', 'S3 URL', ... 
+    rows = []
+
+    for user_detail in users_detail:
+        row = [user_detail['UserName'], user_detail['FirstName'], user_detail['LastName']]
+
+        # URL for Session Recording
+        # S3 URL for Session Recording = https://s3.console.aws.amazon.com/s3/buckets/<Bucket Name>?prefix=<Stack Name>/<Fleet Name>/<User ARN Hash>/
+        user_arn_hash = user_detail['Hash']
+        params = urllib.parse.urlencode({'prefix': f'{stack_name}/{fleet_name}/{user_arn_hash}/'})
+        bucket_URL = f'https://s3.console.aws.amazon.com/s3/buckets/{bucket_name_sessionrecording}?{params}'
+        row.apend(bucket_URL)
+    
+    rows.append(row)
+
+    # Export CSV file
+    with open('report_sessionrecording.csv', 'w', newline='') as csvfile:
+        spamwriter = csv.writer(csvfile)
+        spamwriter.writerow(header)
+
+        for row in rows:
+            spamwriter.writerow(row)
+
+def export_homefolder_report():
     # Get clients
-    s3 = boto3.client('s3')
-    sts = boto3.client('sts')
-    appstream = boto3.client('appstream')
+    s3, sts, appstream = get_clients()
 
     # Get AWS Account ID
     ACCOUNT_ID = get_account_id(sts)
@@ -91,7 +122,18 @@ def main():
     buckets_detail_homefolder = get_buckets_detail_homefolder(buckets_name, ACCOUNT_ID)
 
     # Export report of users' home folder paths
-    export_homefolder_report(buckets_detail_homefolder, users_detail)
+    generate_homefolder_report(buckets_detail_homefolder, users_detail)
+
+def export_sessionrecording_report():
+    # Get clients
+    _, _, appstream = get_clients()
+
+    # Get users' information from User Pool
+    users_detail = get_users_detail(appstream)
+
+def main():
+    export_homefolder_report()
+    export_sessionrecording_report()
 
 
 if __name__ == "__main__":
