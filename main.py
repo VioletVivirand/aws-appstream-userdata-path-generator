@@ -1,3 +1,5 @@
+import fire
+import os
 import boto3
 import re
 import hashlib
@@ -93,7 +95,7 @@ def generate_sessionrecording_report(bucket_name_sessionrecording, stack_name, f
         user_arn_hash = user_detail['Hash']
         params = urllib.parse.urlencode({'prefix': f'{stack_name}/{fleet_name}/{user_arn_hash}/'})
         bucket_URL = f'https://s3.console.aws.amazon.com/s3/buckets/{bucket_name_sessionrecording}?{params}'
-        row.apend(bucket_URL)
+        row.append(bucket_URL)
     
     rows.append(row)
 
@@ -124,17 +126,39 @@ def export_homefolder_report():
     # Export report of users' home folder paths
     generate_homefolder_report(buckets_detail_homefolder, users_detail)
 
-def export_sessionrecording_report():
+def export_sessionrecording_report(bucket=None, stack=None, fleet=None):
+    if not(bucket):
+        print("Please provide Bucket name for storing session recording files.")
+        print("Exit...")
+        os.exit(1)
+    
+    if not(stack):
+        print("Please provide Stack name with session recording feature enabled.")
+        print("Exit...")
+        os.exit(1)
+    
+    if not(fleet):
+        print("Please provide Fleet name with session recording feature enabled.")
+        print("Exit...")
+        os.exit(1)
+
     # Get clients
     _, _, appstream = get_clients()
 
     # Get users' information from User Pool
     users_detail = get_users_detail(appstream)
 
-def main():
-    export_homefolder_report()
-    export_sessionrecording_report()
+    generate_sessionrecording_report(
+        bucket_name_sessionrecording=bucket,
+        stack_name=stack,
+        fleet_name=fleet,
+        users_detail=users_detail)
 
+def main():
+    fire.Fire({
+        'home-folder': export_homefolder_report,
+        'session-recording': export_sessionrecording_report,
+    })
 
 if __name__ == "__main__":
     main()
