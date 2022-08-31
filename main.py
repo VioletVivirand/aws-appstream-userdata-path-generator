@@ -6,14 +6,6 @@ import hashlib
 import urllib.parse
 import csv
 
-def get_clients():
-    s3 = boto3.client('s3')
-    sts = boto3.client('sts')
-    appstream = boto3.client('appstream')
-
-    return s3, sts, appstream
-
-
 def get_account_id(client_sts) -> str:
     account_id = client_sts.get_caller_identity()['Account']
 
@@ -109,7 +101,9 @@ def generate_sessionrecording_report(bucket_name_sessionrecording, stack_name, f
 
 def export_homefolder_report():
     # Get clients
-    s3, sts, appstream = get_clients()
+    s3 = boto3.client('s3')
+    sts = boto3.client('sts')
+    appstream = boto3.client('appstream')
 
     # Get AWS Account ID
     ACCOUNT_ID = get_account_id(sts)
@@ -142,8 +136,8 @@ def export_sessionrecording_report(bucket=None, stack=None, fleet=None):
         print("Exit...")
         os.exit(1)
 
-    # Get clients
-    _, _, appstream = get_clients()
+    # Get client
+    appstream = boto3.client('appstream')
 
     # Get users' information from User Pool
     users_detail = get_users_detail(appstream)
