@@ -186,19 +186,19 @@ def export_homefolder_report(bucket=None):
     generate_homefolder_report(buckets_detail_homefolder, users_detail)
 
 def export_sessionrecording_report(bucket=None, stack=None, fleet=None):
-    if not(bucket):
+    if not bucket:
         print("Please provide Bucket name for storing session recording files.")
         print("by adding \"--bucket\" option.")
         print("Exit...")
         os.exit(1)
     
-    if not(stack):
+    if not stack:
         print("Please provide Stack name with session recording feature enabled.")
         print("by adding \"--stack\" option.")
         print("Exit...")
         os.exit(1)
     
-    if not(fleet):
+    if not fleet:
         print("Please provide Fleet name with session recording feature enabled.")
         print("by adding \"--fleet\" option.")
         print("Exit...")
