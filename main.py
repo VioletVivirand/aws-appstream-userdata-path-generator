@@ -99,7 +99,7 @@ def generate_sessionrecording_report(bucket_name_sessionrecording, stack_name, f
         for row in rows:
             spamwriter.writerow(row)
 
-def export_homefolder_report():
+def export_homefolder_report(bucket=None):
     # Get clients
     s3 = boto3.client('s3')
     sts = boto3.client('sts')
@@ -111,11 +111,14 @@ def export_homefolder_report():
     # Get users' information from User Pool
     users_detail = get_users_detail(appstream)
 
-    # Get all buckets' name
-    buckets_name = get_buckets_name(s3)
+    if not bucket:
+        print("Bucket name not provided, try to get it automatically.")        
 
-    # Filter out bucket used for storing home folders and get additional information
-    buckets_detail_homefolder = get_buckets_detail_homefolder(buckets_name, ACCOUNT_ID)
+        # Get all buckets' name
+        buckets_name = get_buckets_name(s3)
+
+        # Filter out bucket used for storing home folders and get additional information
+        buckets_detail_homefolder = get_buckets_detail_homefolder(buckets_name, ACCOUNT_ID)
 
     # Export report of users' home folder paths
     generate_homefolder_report(buckets_detail_homefolder, users_detail)
