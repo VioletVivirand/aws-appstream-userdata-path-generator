@@ -38,6 +38,8 @@ def get_buckets_detail_homefolder(buckets_name, account_id) -> list:
     return buckets_detail_homefolder
 
 def generate_homefolder_report(buckets_detail_homefolder, users_detail):
+    """Hello world
+    """
     # Prepare data for CSV export
     # Header = 'User Name', 'First Name', 'Last Name', Home Folder URL (<Region Name>), Home Folder URI (<Region Name>), ... 
     header = ['User Name', 'First Name', 'Last Name']
@@ -161,7 +163,9 @@ def generate_s3log_report(database, table, users_detail, datestart=None, dateend
         .reset_index(drop=True)
     df_export.to_csv('report_s3log.csv')
 
-def export_homefolder_report(bucket=None):
+def export_homefolder_report(bucket: str = None):
+    """Generate report of each user's AppStream Home Folder path in S3 bucket
+    """
     # Get clients
     s3 = boto3.client('s3')
     sts = boto3.client('sts')
@@ -185,7 +189,9 @@ def export_homefolder_report(bucket=None):
     # Export report of users' home folder paths
     generate_homefolder_report(buckets_detail_homefolder, users_detail)
 
-def export_sessionrecording_report(bucket=None, stack=None, fleet=None):
+def export_sessionrecording_report(bucket: str, stack: str, fleet: str):
+    """Generate report of user's session recording path in bucket
+    """
     if not bucket:
         print("Please provide Bucket name for storing session recording files.")
         print("by adding \"--bucket\" option.")
@@ -216,7 +222,9 @@ def export_sessionrecording_report(bucket=None, stack=None, fleet=None):
         fleet_name=fleet,
         users_detail=users_detail)
 
-def export_s3log_report(database, table, datestart=None, dateend=None):
+def export_s3log_report(database: str, table: str, datestart: str = None, dateend: str = None):
+    """Generate report of each user's S3 access log
+    """
     if not database:
         print("Please provide Glue Data Catalog database name for storing S3 access logs")
         print("by adding \"--database\" option.")
