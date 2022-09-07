@@ -1,17 +1,40 @@
 import fire
-import os
+import sys
+from loguru import logger
 import boto3
 import re
 import hashlib
 import urllib.parse
 import csv
 
+def set_logger(debug):
+
+    # DEFAULT_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "\
+    # "<level>{level: <8}</level> | "\
+    # "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+
+    INFO_FORMAT = "<level>{message}</level>"
+
+    if debug:
+        logger.remove()
+        logger.add(sys.stderr, level="DEBUG")
+        logger.add("debug.log", rotation="1 MB", level='DEBUG') 
+        logger.info("Debug mode enabled.")
+    else:
+        logger.remove()
+        logger.add(sys.stderr, format=INFO_FORMAT, level="INFO")
+        
+
 def get_account_id(client_sts) -> str:
+    logger.debug("Getting AWS Account ID")
+
     account_id = client_sts.get_caller_identity()['Account']
+    logger.debug(f"AWS Account ID = {account_id}")
 
     return account_id
 
 def get_users_detail(client_appstream) -> dict:
+    logger.debug("Getting Userpool Information")
     users = client_appstream.describe_users(AuthenticationType="USERPOOL")['Users']
     users_detail = [{
         'Hash': user['Arn'].split('/')[-1],
@@ -23,23 +46,28 @@ def get_users_detail(client_appstream) -> dict:
     return users_detail
 
 def get_buckets_name(client_s3) -> list:
+    logger.debug("Getting buckets name")
     buckets_name = [doc['Name'] for doc in client_s3.list_buckets()['Buckets']]
+    logger.debug(f"Bucket name = {buckets_name}")
 
     return buckets_name
 
 def get_buckets_detail_homefolder(buckets_name, account_id) -> list:
+    logger.debug("Getting home folder buckets name")
+    logger.debug(f"buckets_name = {buckets_name}, account_id = {account_id}")
     p_homefolder = r"appstream2-36fb080bb8-(\S+)-"+ account_id + r"$"
 
     buckets_detail_homefolder = [{
             "BucketName": re.search(p_homefolder, bucket_name).group(),
             "Region": re.search(p_homefolder, bucket_name).group(1)
         } for bucket_name in buckets_name if re.search(p_homefolder, bucket_name)]
+    logger.debug("Home folder bucket names")
+    logger.debug(buckets_detail_homefolder)
     
     return buckets_detail_homefolder
 
 def generate_homefolder_report(buckets_detail_homefolder, users_detail):
-    """Hello world
-    """
+    logger.debug("Generating home folder report")
     # Prepare data for CSV export
     # Header = 'User Name', 'First Name', 'Last Name', Home Folder URL (<Region Name>), Home Folder URI (<Region Name>), ... 
     header = ['User Name', 'First Name', 'Last Name']
@@ -47,6 +75,7 @@ def generate_homefolder_report(buckets_detail_homefolder, users_detail):
     for bucket_detail_homefolder in buckets_detail_homefolder:
         bucket_region = bucket_detail_homefolder['Region']
         header.append(f'Home Folder S3 URL ({bucket_region})')
+        logger.debug(f"Added region {bucket_region} to header")
 
     # Row = '<UserName>', '<FirstName>', '<LastName>', 'S3 URL', 'S3 URL', ... 
     rows = []
@@ -72,8 +101,12 @@ def generate_homefolder_report(buckets_detail_homefolder, users_detail):
 
         for row in rows:
             spamwriter.writerow(row)
+    
+    logger.info("Report exported to report_homefolder.csv")
 
 def generate_sessionrecording_report(bucket_name_sessionrecording, stack_name, fleet_name, users_detail):
+    logger.debug("Generating session recording paths report")
+    logger.debug(f"bucket_name_sessionrecording = {bucket_name_sessionrecording}, stack_name = {stack_name}, fleet_name = {fleet_name}")
     # Prepare data for CSV export
     # Header = 'User Name', 'First Name', 'Last Name', Session Recording URL (<Region Name>), Home Folder URI (<Region Name>), ... 
     header = ['User Name', 'First Name', 'Last Name', 'Session Recording S3 URL']
@@ -100,8 +133,12 @@ def generate_sessionrecording_report(bucket_name_sessionrecording, stack_name, f
 
         for row in rows:
             spamwriter.writerow(row)
+    
+    logger.info("Report exported to report_sessionrecording.csv")
 
 def generate_s3log_report(database, table, users_detail, datestart=None, dateend=None):
+    logger.debug("Generating S3 access log report")
+    logger.debug(f"database = {database}, table = {table}, users_detail = {users_detail}, datestart = {datestart}, dateend = {dateend}")
     import awswrangler as wr
     import pandas as pd
 
@@ -163,12 +200,24 @@ def generate_s3log_report(database, table, users_detail, datestart=None, dateend
         .reset_index(drop=True)
     df_export.to_csv('report_s3log.csv')
 
-def export_homefolder_report(bucket: str = None):
+    logger.info("Report exported to report_s3log.csv")
+
+def export_homefolder_report(bucket: str = None, debug: bool = False):
     """Generate report of each user's AppStream Home Folder path in S3 bucket
     """
-    # Get clients
+
+    # Set Loguru logger
+    set_logger(debug=debug)
+    logger.info("Exporting Home Folder report...")
+
+    # Log the parameters in debug mode
+    logger.debug(f"bucket = {bucket}")
+
+    # Get clients    
     s3 = boto3.client('s3')
+
     sts = boto3.client('sts')
+
     appstream = boto3.client('appstream')
 
     # Get AWS Account ID
@@ -178,7 +227,7 @@ def export_homefolder_report(bucket: str = None):
     users_detail = get_users_detail(appstream)
 
     if not bucket:
-        print("Bucket name not provided, try to get it automatically.")        
+        logger.warning("Bucket name not provided, try to get it automatically.")        
 
         # Get all buckets' name
         buckets_name = get_buckets_name(s3)
@@ -189,26 +238,18 @@ def export_homefolder_report(bucket: str = None):
     # Export report of users' home folder paths
     generate_homefolder_report(buckets_detail_homefolder, users_detail)
 
-def export_sessionrecording_report(bucket: str, stack: str, fleet: str):
+def export_sessionrecording_report(bucket: str, stack: str, fleet: str, debug: bool = False):
     """Generate report of user's session recording path in bucket
     """
-    if not bucket:
-        print("Please provide Bucket name for storing session recording files.")
-        print("by adding \"--bucket\" option.")
-        print("Exit...")
-        os.exit(1)
-    
-    if not stack:
-        print("Please provide Stack name with session recording feature enabled.")
-        print("by adding \"--stack\" option.")
-        print("Exit...")
-        os.exit(1)
-    
-    if not fleet:
-        print("Please provide Fleet name with session recording feature enabled.")
-        print("by adding \"--fleet\" option.")
-        print("Exit...")
-        os.exit(1)
+
+    # Set Loguru logger
+    set_logger(debug=debug)
+    logger.info("Exporting session recording path report...")
+
+    # Log the parameters in debug mode
+    logger.debug(f"bucket = {bucket}")
+    logger.debug(f"stack = {stack}")
+    logger.debug(f"fleet = {fleet}")
 
     # Get client
     appstream = boto3.client('appstream')
@@ -222,24 +263,22 @@ def export_sessionrecording_report(bucket: str, stack: str, fleet: str):
         fleet_name=fleet,
         users_detail=users_detail)
 
-def export_s3log_report(database: str, table: str, datestart: str = None, dateend: str = None):
+def export_s3log_report(database: str, table: str, datestart: str = None, dateend: str = None, debug: bool = False):
     """Generate report of each user's S3 access log
     """
-    if not database:
-        print("Please provide Glue Data Catalog database name for storing S3 access logs")
-        print("by adding \"--database\" option.")
-        print("Exit...")
-        os.exit(1)
 
-    if not table:
-        print("Please provide Glue Data Catalog table name for storing S3 access logs")
-        print("by adding \"--table\" option.")
-        print("Exit...")
-        os.exit(1)
+    # Set Loguru logger
+    set_logger(debug=debug)
+    logger.info("Exporting S3 access log report...")
+
+    # Log the parameters in debug mode
+    logger.debug(f"database = {database}, table = {table}, datestart = {datestart}, dateend = {dateend}")
 
     if not datestart and not dateend:
-        print("Please provide at least one date reference in ISO format for searcing data")
-        print("by adding \"--datestart\" or \"--dateend\" option.")
+        logger.info("Please provide at least one date reference in ISO format for searcing data\n"
+                    "by adding \"--datestart\" or \"--dateend\" option.\n"
+                    "Exit...")
+        sys.exit(1)
 
     # Get client
     appstream = boto3.client('appstream')
