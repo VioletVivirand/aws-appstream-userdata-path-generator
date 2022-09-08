@@ -180,6 +180,7 @@ def generate_s3log_report(database, table, users_detail, datestart=None, dateend
 		    'REST.COPY.OBJECT_GET',
 		    'REST.BATCH.DELETE'
 	    );"""
+    logger.debug(f"SQL Query = \n{SQL}")
 
     # Read access log via Data Wrangler as DataFrame
     df = wr.athena.read_sql_query(SQL, database=database)
@@ -195,9 +196,10 @@ def generate_s3log_report(database, table, users_detail, datestart=None, dateend
     df.loc[:, 'requestdatetime'] = pd.to_datetime(df.loc[:, 'requestdatetime'], format="%d/%b/%Y:%H:%M:%S %z")
 
     # Export
-    df_export = df.loc[:, ['key', 'requestdatetime', 'UserName', 'FirstName', 'LastName']]\
+    df_export = df.loc[:, ['bucket_name', 'key', 'operation', 'requestdatetime', 'UserName', 'FirstName', 'LastName']]\
         .sort_values(by=['requestdatetime'], ascending=False)\
         .reset_index(drop=True)
+    
     df_export.to_csv('report_s3log.csv')
 
     logger.info("Report exported to report_s3log.csv")
