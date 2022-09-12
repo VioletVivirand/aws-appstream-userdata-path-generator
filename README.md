@@ -25,8 +25,11 @@ This script generates the reports as below:
 ## Quickstart
 
 ```bash
+# Clone this repo
+git clone https://github.com/VioletVivirand/aws-appstream-userdata-path-generator.git && cd aws-appstream-userdata-path-generator
+
 # Install required dependencies
-pip install -r requirements
+pip install -r requirements.txt
 
 # To generate the home folder path of AppStream 2.0 users:
 python main.py home-folder
