@@ -125,8 +125,10 @@ This function only works if you [enable S3 access log and create database and ta
 
 The preview of the report:
 
+```
 ,bucket_name,key,operation,requestdatetime,UserName,FirstName,LastName
 0,appstream2-36fb080bb8-ap-northeast-1-546614691476,user/userpool/7462108984f629db2ced1aeb2dc3e747e53a2e1c607059f72955ab864c724335/dummy.txt,REST.PUT.OBJECT,2022-09-01 02:37:30+00:00,demo@example.com,Demo,User
+```
 
 Please provide the required variables: database name and table name by specifying position arguments or flags.
 
