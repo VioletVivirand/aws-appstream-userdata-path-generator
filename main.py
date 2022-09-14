@@ -178,7 +178,9 @@ def generate_s3log_report(database, table, users_detail, datestart=None, dateend
 		    'REST.PUT.OBJECT',
 		    'REST.COPY.OBJECT',
 		    'REST.COPY.OBJECT_GET',
-		    'REST.BATCH.DELETE'
+		    'REST.BATCH.DELETE',
+            'REST.DELETE.OBJECT',
+		    'REST.POST.MULTI_OBJECT_DELETE'
 	    );"""
     logger.debug(f"SQL Query = \n{SQL}")
 
