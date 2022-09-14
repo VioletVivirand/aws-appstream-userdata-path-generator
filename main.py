@@ -25,7 +25,7 @@ def set_logger(debug):
         logger.add(sys.stderr, format=INFO_FORMAT, level="INFO")
         
 
-def get_account_id(client_sts) -> str:
+def get_account_id(client_sts):
     logger.debug("Getting AWS Account ID")
 
     account_id = client_sts.get_caller_identity()['Account']
@@ -33,7 +33,7 @@ def get_account_id(client_sts) -> str:
 
     return account_id
 
-def get_users_detail(client_appstream) -> dict:
+def get_users_detail(client_appstream):
     logger.debug("Getting Userpool Information")
     users = client_appstream.describe_users(AuthenticationType="USERPOOL")['Users']
     users_detail = [{
@@ -45,14 +45,14 @@ def get_users_detail(client_appstream) -> dict:
     
     return users_detail
 
-def get_buckets_name(client_s3) -> list:
+def get_buckets_name(client_s3):
     logger.debug("Getting buckets name")
     buckets_name = [doc['Name'] for doc in client_s3.list_buckets()['Buckets']]
     logger.debug(f"Bucket name = {buckets_name}")
 
     return buckets_name
 
-def get_buckets_detail_homefolder(buckets_name, account_id) -> list:
+def get_buckets_detail_homefolder(buckets_name, account_id):
     logger.debug("Getting home folder buckets name")
     logger.debug(f"buckets_name = {buckets_name}, account_id = {account_id}")
     p_homefolder = r"appstream2-36fb080bb8-(\S+)-"+ account_id + r"$"
