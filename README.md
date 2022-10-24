@@ -19,7 +19,6 @@ This script generates the reports as below:
   - [Provide AWS Configuration](#provide-aws-configuration)
   - [Python Environment Preparation](#python-environment-preparation)
   - [Generate the home folder path of AppStream 2.0 users](#generate-the-home-folder-path-of-appstream-20-users)
-  - [Generate the session recording path or AppStream 2.0 users](#generate-the-session-recording-path-or-appstream-20-users)
   - [Generate the AppStream 2.0 S3 access logs](#generate-the-appstream-20-s3-access-logs)
 
 ## Quickstart
@@ -90,33 +89,6 @@ python main.py home-folder --bucket=<bucket name>
 
 # Example
 python main.py home-folder --bucket="appstream2-36fb080bb8-ap-northeast-1-546614691476"
-```
-
-
-### Generate the session recording path or AppStream 2.0 users
-
-This function only works if you adopt the [AppStream session recording solution](https://aws.amazon.com/blogs/security/how-to-record-video-of-amazon-appstream-2-0-streaming-sessions/) provided on AWS Blog Post.
-
-The preview of the report:
-
-```
-User Name,First Name,Last Name,Session Recording S3 URL
-demo@example.com,Demo,User,https://s3.console.aws.amazon.com/s3/buckets/session-recording-bucket?prefix=stackname%2Ffleetname%2F84d6b9b2-2fee-429b-b4a4-7743d3ffe687%2F
-```
-
-Please provide all required variables: Bucket name that stores the session recording files, AppStream 2.0 Stack name and AppStream 2.0 Fleet name by specifying position arguments or flags:
-
-```bash
-python main.py session-recording \
-  --bucket=<Bucket name> \
-  --stack=<Stack name> \
-  --fleet=<Fleet name>
-
-# Example
-python main.py session-recording \
-  --bucket="session-recording-bucket" \
-  --stack="AppStream-Demo-Stack" \
-  --fleet="AppStream-Demo-Fleet"
 ```
 
 ### Generate the AppStream 2.0 S3 access logs

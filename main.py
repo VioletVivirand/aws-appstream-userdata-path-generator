@@ -104,38 +104,6 @@ def generate_homefolder_report(buckets_detail_homefolder, users_detail):
     
     logger.info("Report exported to report_homefolder.csv")
 
-def generate_sessionrecording_report(bucket_name_sessionrecording, stack_name, fleet_name, users_detail):
-    logger.debug("Generating session recording paths report")
-    logger.debug(f"bucket_name_sessionrecording = {bucket_name_sessionrecording}, stack_name = {stack_name}, fleet_name = {fleet_name}")
-    # Prepare data for CSV export
-    # Header = 'User Name', 'First Name', 'Last Name', Session Recording URL (<Region Name>), Home Folder URI (<Region Name>), ... 
-    header = ['User Name', 'First Name', 'Last Name', 'Session Recording S3 URL']
-
-    # Row = '<UserName>', '<FirstName>', '<LastName>', 'S3 URL', 'S3 URL', ... 
-    rows = []
-
-    for user_detail in users_detail:
-        row = [user_detail['UserName'], user_detail['FirstName'], user_detail['LastName']]
-
-        # URL for Session Recording
-        # S3 URL for Session Recording = https://s3.console.aws.amazon.com/s3/buckets/<Bucket Name>?prefix=<Stack Name>/<Fleet Name>/<User ARN Hash>/
-        user_arn_hash = user_detail['Hash']
-        params = urllib.parse.urlencode({'prefix': f'{stack_name}/{fleet_name}/{user_arn_hash}/'})
-        bucket_URL = f'https://s3.console.aws.amazon.com/s3/buckets/{bucket_name_sessionrecording}?{params}'
-        row.append(bucket_URL)
-    
-    rows.append(row)
-
-    # Export CSV file
-    with open('report_sessionrecording.csv', 'w', newline='') as csvfile:
-        spamwriter = csv.writer(csvfile)
-        spamwriter.writerow(header)
-
-        for row in rows:
-            spamwriter.writerow(row)
-    
-    logger.info("Report exported to report_sessionrecording.csv")
-
 def generate_s3log_report(database, table, users_detail, datestart=None, dateend=None):
     logger.debug("Generating S3 access log report")
     logger.debug(f"database = {database}, table = {table}, users_detail = {users_detail}, datestart = {datestart}, dateend = {dateend}")
@@ -242,31 +210,6 @@ def export_homefolder_report(bucket: str = None, debug: bool = False):
     # Export report of users' home folder paths
     generate_homefolder_report(buckets_detail_homefolder, users_detail)
 
-def export_sessionrecording_report(bucket: str, stack: str, fleet: str, debug: bool = False):
-    """Generate report of user's session recording path in bucket
-    """
-
-    # Set Loguru logger
-    set_logger(debug=debug)
-    logger.info("Exporting session recording path report...")
-
-    # Log the parameters in debug mode
-    logger.debug(f"bucket = {bucket}")
-    logger.debug(f"stack = {stack}")
-    logger.debug(f"fleet = {fleet}")
-
-    # Get client
-    appstream = boto3.client('appstream')
-
-    # Get users' information from User Pool
-    users_detail = get_users_detail(appstream)
-
-    generate_sessionrecording_report(
-        bucket_name_sessionrecording=bucket,
-        stack_name=stack,
-        fleet_name=fleet,
-        users_detail=users_detail)
-
 def export_s3log_report(database: str, table: str, datestart: str = None, dateend: str = None, debug: bool = False):
     """Generate report of each user's S3 access log
     """
@@ -303,7 +246,6 @@ def export_s3log_report(database: str, table: str, datestart: str = None, dateen
 def main():
     fire.Fire({
         'home-folder': export_homefolder_report,
-        'session-recording': export_sessionrecording_report,
         's3-accesslog': export_s3log_report,
     })
 
